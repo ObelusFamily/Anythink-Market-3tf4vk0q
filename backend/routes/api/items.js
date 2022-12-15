@@ -40,6 +40,7 @@ router.get("/", auth.optional, function(req, res, next) {
   var query = {};
   var limit = 100;
   var offset = 0;
+  var title = "";
 
   if (typeof req.query.limit !== "undefined") {
     limit = req.query.limit;
@@ -51,6 +52,10 @@ router.get("/", auth.optional, function(req, res, next) {
 
   if (typeof req.query.tag !== "undefined") {
     query.tagList = { $in: [req.query.tag] };
+  }
+
+  if (typeof req.query.title !== "undefined") {
+    title = req.query.title;
   }
 
   Promise.all([
@@ -75,6 +80,7 @@ router.get("/", auth.optional, function(req, res, next) {
         Item.find(query)
           .limit(Number(limit))
           .skip(Number(offset))
+          .find({"title": { $regex: `.*${title}.*`}})
           .sort({ createdAt: "desc" })
           .exec(),
         Item.count(query).exec(),
@@ -163,11 +169,7 @@ router.get("/:item", auth.optional, function(req, res, next) {
     req.item.populate("seller").execPopulate()
   ])
     .then(function(results) {
-
       var user = results[0];
-
-      let title = req.query.title;
-      user = user.filter(u => u.title.contains(title));
 
       return res.json({ item: req.item.toJSONFor(user) });
     })
